@@ -145,10 +145,9 @@ fileprivate extension Binding {
         data.playerHeight = player.frame.size.height * UIScreen.main.nativeScale as NSNumber
         data.playerIsFullscreen = player.frame.equalTo(UIScreen.main.bounds) ? "true" : "false"
         data.playerIsPaused = NSNumber(booleanLiteral: player.paused)
-        player.requestCurrentTime { (time, _) in
-            data.playerPlayheadTime = NSNumber(value: (Int64)((time ?? 0) * 1000))
-            completion(data)
-        }
+        player.currentTime
+        data.playerPlayheadTime = NSNumber(value: (Int64)(player.currentTime * 1000))
+        completion(data)
     }
 
     func checkVideoData() {
@@ -191,13 +190,10 @@ fileprivate extension Binding {
 
     func setSizeDimensions () {
         guard let player = player else { return }
-        player.requestVideoWidth { (width, _) in
-            player.requestVideoHeight { (height, _) in
-                let size = CGSize(width: width ?? 0, height: height ?? 0)
-                if !self.size.equalTo(size) {
-                    self.size = size
-                }
-            }
+        player.videoWidth
+        let size = CGSize(width: player.videoWidth, height: player.videoHeight)
+        if !self.size.equalTo(size) {
+            self.size = size
         }
     }
 
@@ -247,11 +243,10 @@ fileprivate extension Binding {
                 self.forceSendAdPlaying = true
                 self.dispatchEvent(MUXSDKAdPauseEvent.self, checkVideoData: true, includeAdData: true)
             } else {
-                player.requestCurrentTime(completionHandler: { (time, _) in
-                    if let time = time, let duration = player.duration, time < duration {
-                        self.dispatchEvent(MUXSDKPauseEvent.self, checkVideoData: true)
-                    }
-                })
+                let time = player.currentTime
+                if let duration = player.duration, time < duration {
+                    self.dispatchEvent(MUXSDKPauseEvent.self, checkVideoData: true)
+                }
             }
         }
         timeListener = player.addEventListener(type: PlayerEventTypes.TIME_UPDATE) { (evt: TimeUpdateEvent) in
