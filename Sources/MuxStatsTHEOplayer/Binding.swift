@@ -131,23 +131,24 @@ internal class Binding: NSObject {
 
 fileprivate extension Binding {
     func playerData(completion: @escaping (_ data: MUXSDKPlayerData) -> ()) {
-        let data = MUXSDKPlayerData()
-        guard let player = self.player else { return }
+        DispatchQueue.main.async {
+            let data = MUXSDKPlayerData()
+            guard let player = self.player else { return }
 
-        data.playerMuxPluginName = Constants.pluginName
-        data.playerMuxPluginVersion = Constants.pluginVersion
-        data.playerSoftwareName = self.software
-        if (self.softwareVersion != nil) {
-            data.playerSoftwareVersion = self.softwareVersion
+            data.playerMuxPluginName = Constants.pluginName
+            data.playerMuxPluginVersion = Constants.pluginVersion
+            data.playerSoftwareName = self.software
+            if (self.softwareVersion != nil) {
+                data.playerSoftwareVersion = self.softwareVersion
+            }
+            data.playerLanguageCode = NSLocale.preferredLanguages.first
+            data.playerWidth = player.frame.size.width * UIScreen.main.nativeScale as NSNumber
+            data.playerHeight = player.frame.size.height * UIScreen.main.nativeScale as NSNumber
+            data.playerIsFullscreen = player.frame.equalTo(UIScreen.main.bounds) ? "true" : "false"
+            data.playerIsPaused = NSNumber(booleanLiteral: player.paused)
+            data.playerPlayheadTime = NSNumber(value: (Int64)(player.currentTime * 1000))
+            completion(data)
         }
-        data.playerLanguageCode = NSLocale.preferredLanguages.first
-        data.playerWidth = player.frame.size.width * UIScreen.main.nativeScale as NSNumber
-        data.playerHeight = player.frame.size.height * UIScreen.main.nativeScale as NSNumber
-        data.playerIsFullscreen = player.frame.equalTo(UIScreen.main.bounds) ? "true" : "false"
-        data.playerIsPaused = NSNumber(booleanLiteral: player.paused)
-        player.currentTime
-        data.playerPlayheadTime = NSNumber(value: (Int64)(player.currentTime * 1000))
-        completion(data)
     }
 
     func checkVideoData() {
