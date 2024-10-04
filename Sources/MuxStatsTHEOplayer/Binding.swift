@@ -91,8 +91,7 @@ internal class Binding: NSObject {
             event.viewData = self.ad?.viewData
         }
         let name = self.name
-        
-        playerData { (data) in
+        playerData { data in
             event.playerData = data
             // careful here, we only want to disable MUXSDKErrorEvent
             // ad errors should still be triggered (MUXSDKAdErrorEvent)
@@ -100,8 +99,8 @@ internal class Binding: NSObject {
             // ad errors either
             if (type == MUXSDKErrorEvent.self) {
                 if let error = error {
-                    event.playerData!.playerErrorMessage = error
-                    event.playerData!.playerErrorCode = errorCode
+                    event.playerData?.playerErrorMessage = error
+                    event.playerData?.playerErrorCode = errorCode
                 }
                 if (self.automaticErrorTracking) {
                     MUXSDKCore.dispatchEvent(event, forPlayer: name)
@@ -120,10 +119,10 @@ internal class Binding: NSObject {
         let event = MUXSDKErrorEvent()
         let name = self.name
 
-        playerData { (data) in
+        playerData { data in
             event.playerData = data
-            event.playerData!.playerErrorCode = code
-            event.playerData!.playerErrorMessage = message
+            event.playerData?.playerErrorCode = code
+            event.playerData?.playerErrorMessage = message
             MUXSDKCore.dispatchEvent(event, forPlayer: name)
         }
     }
@@ -191,7 +190,6 @@ fileprivate extension Binding {
 
     func setSizeDimensions () {
         guard let player = player else { return }
-        player.videoWidth
         let size = CGSize(width: player.videoWidth, height: player.videoHeight)
         if !self.size.equalTo(size) {
             self.size = size
@@ -299,25 +297,30 @@ fileprivate extension Binding {
             self.setSizeDimensions()
             self.dispatchEvent(MUXSDKTimeUpdateEvent.self, checkVideoData: true)
         }
-        adBreakBeginListener = player.ads.addEventListener(type: AdsEventTypes.AD_BREAK_BEGIN) { (_: AdBreakBeginEvent) in
-            self.adIsActive = true
-            self.dispatchEvent(MUXSDKAdBreakStartEvent.self, includeAdData: true)
-        }
-        adBreakEndListener = player.ads.addEventListener(type: AdsEventTypes.AD_BREAK_END) { (_: AdBreakEndEvent) in
-            self.adIsActive = false
-            self.dispatchEvent(MUXSDKAdBreakEndEvent.self, includeAdData: true)
-            self.ad = nil
-        }
-        adBeginListener = player.ads.addEventListener(type: AdsEventTypes.AD_BEGIN) { (event: AdBeginEvent) in
-            self.ad = event.ad
-        }
-        adEndListener = player.ads.addEventListener(type: AdsEventTypes.AD_END) { (_: AdEndEvent) in
-            self.dispatchEvent(MUXSDKAdEndedEvent.self, includeAdData: true)
-            self.ad = nil
-        }
-        adErrorListener = player.ads.addEventListener(type: AdsEventTypes.AD_ERROR) { (event: AdErrorEvent) in
-            self.dispatchEvent(MUXSDKAdErrorEvent.self)
-            self.ad = nil
+
+        let containsAdsIntegration = player.getAllIntegrations().contains { $0.type == .ADS }
+
+        if containsAdsIntegration {
+            adBreakBeginListener = player.ads.addEventListener(type: AdsEventTypes.AD_BREAK_BEGIN) { (_: AdBreakBeginEvent) in
+                self.adIsActive = true
+                self.dispatchEvent(MUXSDKAdBreakStartEvent.self, includeAdData: true)
+            }
+            adBreakEndListener = player.ads.addEventListener(type: AdsEventTypes.AD_BREAK_END) { (_: AdBreakEndEvent) in
+                self.adIsActive = false
+                self.dispatchEvent(MUXSDKAdBreakEndEvent.self, includeAdData: true)
+                self.ad = nil
+            }
+            adBeginListener = player.ads.addEventListener(type: AdsEventTypes.AD_BEGIN) { (event: AdBeginEvent) in
+                self.ad = event.ad
+            }
+            adEndListener = player.ads.addEventListener(type: AdsEventTypes.AD_END) { (_: AdEndEvent) in
+                self.dispatchEvent(MUXSDKAdEndedEvent.self, includeAdData: true)
+                self.ad = nil
+            }
+            adErrorListener = player.ads.addEventListener(type: AdsEventTypes.AD_ERROR) { (event: AdErrorEvent) in
+                self.dispatchEvent(MUXSDKAdErrorEvent.self)
+                self.ad = nil
+            }
         }
     }
 
